@@ -16,6 +16,9 @@ config 값 사용을 위한 local.settings.json은 별도로 작성해둠
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+  },
+  "ConnectionStrings": {
+    "MyDatabase": "{your connection string}"
   }
 }
 
