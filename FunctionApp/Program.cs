@@ -48,7 +48,8 @@ var host = new HostBuilder()
                     }
                 },
                 Servers = DefaultOpenApiConfigurationOptions.GetHostNames(),
-                OpenApiVersion = OpenApiVersionType.V2,
+                //to use authroize must v3
+                OpenApiVersion = OpenApiVersionType.V3,
                 IncludeRequestingHostName = true,
                 ForceHttps = false,
                 ForceHttp = false,
