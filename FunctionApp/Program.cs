@@ -1,5 +1,6 @@
 using FunctionApp.Models.DAO;
 using FunctionApp.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Configurations;
@@ -13,9 +14,9 @@ using Microsoft.OpenApi.Models;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication(
-        app =>
+        builder =>
         {
-
+            builder.UseFunctionsAuthorization();
         }
     )
     .ConfigureServices((context, service) =>
@@ -56,6 +57,22 @@ var host = new HostBuilder()
             };
 
             return options;
+        });
+
+        service
+           .AddFunctionsAuthentication(JwtBearerDefaults.AuthenticationScheme)
+           // or just ASP.NET Core's .AddAuthentication(... 
+           .AddJwtBearer(options =>
+           {
+               options.Authority = "https://localhost:5001";
+               options.Audience = "https://localhost:5001/resources";
+               // Other JWT configuration options...
+           });
+
+        // Define custom authorization policies
+        service.AddFunctionsAuthorization(options =>
+        {
+            options.AddPolicy("Admin", policy => policy.RequireRole("super_admin"));
         });
 
         #endregion

@@ -1,23 +1,24 @@
+using DarkLoop.Azure.Functions.Authorization;
 using FunctionApp.Helpers;
 using FunctionApp.Models.DAO;
 using FunctionApp.Models.DTO.Items;
 using FunctionApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Security.Claims;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FunctionApp.Triggers
 {
+    //[FunctionAuthorize]
+    //[Authorize(Policy = "Admin")]
     public class ItemTrigger
     {
         private readonly ILogger<ItemTrigger> _logger;
@@ -33,33 +34,33 @@ namespace FunctionApp.Triggers
         }
 
 
-        [Function("Identity")]
-        [OpenApiOperation(operationId: nameof(Identity), tags: ["Test Identity"],
-            Summary = "Test Identity", Description = "Protect api from identity")]
-        [OpenApiSecurity("oidc_auth",
-                     SecuritySchemeType.OpenIdConnect,
-                     OpenIdConnectUrl = "https://demo.duendesoftware.com/.well-known/openid-configuration",
-                     OpenIdConnectScopes = "openid,profile")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK,
-            contentType: "application/json", bodyType: typeof(string), Summary = "Test Identity Response",
-            Description = "Test Identity Response")]
-        public async Task<IActionResult> Identity([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "identity")] HttpRequest req)
-        {
-            var headers = req.Headers.ToDictionary(p => p.Key, p => (string)p.Value);
-            var handler = new JwtSecurityTokenHandler();
-            var hasAuth = headers.TryGetValue("Authorization", out string auth);
+        //[Function("Identity")]
+        //[OpenApiOperation(operationId: nameof(Identity), tags: ["Test Identity"],
+        //    Summary = "Test Identity", Description = "Protect api from identity")]
+        //[OpenApiSecurity("oidc_auth",
+        //             SecuritySchemeType.OpenIdConnect,
+        //             OpenIdConnectUrl = "https://demo.duendesoftware.com/.well-known/openid-configuration",
+        //             OpenIdConnectScopes = "openid,profile")]
+        //[OpenApiResponseWithBody(statusCode: HttpStatusCode.OK,
+        //    contentType: "application/json", bodyType: typeof(string), Summary = "Test Identity Response",
+        //    Description = "Test Identity Response")]
+        //public async Task<IActionResult> Identity([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "identity")] HttpRequest req)
+        //{
+        //    var headers = req.Headers.ToDictionary(p => p.Key, p => (string)p.Value);
+        //    var handler = new JwtSecurityTokenHandler();
+        //    var hasAuth = headers.TryGetValue("Authorization", out string auth);
 
-            if (!hasAuth)
-            {
-                return new UnauthorizedResult();
-            }
+        //    if (!hasAuth)
+        //    {
+        //        return new UnauthorizedResult();
+        //    }
 
-            var token = handler.ReadJwtToken(auth.Split(' ').Last());
-            var claims = token.Claims;
-            var content = new { headers = headers, claims = claims };
+        //    var token = handler.ReadJwtToken(auth.Split(' ').Last());
+        //    var claims = token.Claims;
+        //    var content = new { headers = headers, claims = claims };
 
-            return new NoContentResult();
-        }
+        //    return new NoContentResult();
+        //}
 
 
 
@@ -68,7 +69,7 @@ namespace FunctionApp.Triggers
 
 
         [Function("List")]
-        [OpenApiOperation(operationId: nameof(List), tags: ["Get item list"],
+        [OpenApiOperation(operationId: nameof(List), tags: ["Item"],
             Summary = "Get item list", Description = "Get item list")]
         [OpenApiParameter(name:"name", In = Microsoft.OpenApi.Models.ParameterLocation.Query,Required = false, Type = typeof(string))]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK,
@@ -93,7 +94,7 @@ namespace FunctionApp.Triggers
 
 
         [Function("Get")]
-        [OpenApiOperation(operationId: nameof(Get), tags: ["Get item"],
+        [OpenApiOperation(operationId: nameof(Get), tags: ["Item"],
             Summary = "Get item", Description = "Get item")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK,
             contentType: "application/json", bodyType: typeof(Item), Summary = "item Response",
@@ -121,9 +122,10 @@ namespace FunctionApp.Triggers
         }
 
 
-
+        [FunctionAuthorize]
+        [Authorize(Policy = "Admin")]
         [Function("Create")]
-        [OpenApiOperation(operationId: nameof(Create), tags: ["Create item"],
+        [OpenApiOperation(operationId: nameof(Create), tags: ["Item"],
             Summary = "Create Item", Description = "Create Item")]
         [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateItem._Request),
             Required = true, Description = "Create Item")]
@@ -135,6 +137,15 @@ namespace FunctionApp.Triggers
             Description = "item Response")]
         public async Task<IActionResult> Create([HttpTrigger(AuthorizationLevel.Function, "post", Route = "items")] HttpRequest req)
         {
+            if (req.HttpContext.User.Identity.IsAuthenticated)
+            {
+
+            }
+
+            //check claim
+            bool hasSub = req.HttpContext.User.Claims.TryGetClaim("sub", out string sub);
+
+
 
             var parse = await req.ParseBodyAsync<CreateItem._Request>();
 
@@ -161,8 +172,10 @@ namespace FunctionApp.Triggers
         }
 
 
+        [FunctionAuthorize]
+        [Authorize(Policy = "Admin")]
         [Function("Update")]
-        [OpenApiOperation(operationId: nameof(Update), tags: ["Update item"],
+        [OpenApiOperation(operationId: nameof(Update), tags: ["Item"],
             Summary = "Update Item", Description = "Update Item")]
         [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateItem._Request),
             Required = true, Description = "Update Item")]
@@ -200,8 +213,10 @@ namespace FunctionApp.Triggers
         }
 
 
+        [FunctionAuthorize]
+        [Authorize(Policy = "Admin")]
         [Function("Delete")]
-        [OpenApiOperation(operationId: nameof(Delete), tags: ["Delete item"],
+        [OpenApiOperation(operationId: nameof(Delete), tags: ["Item"],
             Summary = "Delete Item", Description = "Delete Item")]
         [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(Item),
             Required = true, Description = "Delete Item")]
